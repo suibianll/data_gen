@@ -102,8 +102,7 @@ class QABuilder:
         Returns
         -------
         list of dict
-            Each dict has keys ``query_type``, ``question``, ``answer``,
-            ``references``.
+            Each dict has keys ``question``, ``answer``, ``golden_chunks``.
         """
         record_text = _record_to_text(record)
         user_msg = _USER_TEMPLATE.format(n=n, record_text=record_text)
