@@ -89,7 +89,7 @@ generation:
 ]
 ```
 
-程序会自动读取 `content` 字段并汇总后抽取病症信息。  
+程序会自动读取 `content` 字段并按篇逐个抽取病症信息，再汇总结果。  
 仓库已附带示例文件 `data/input/sample_medical_dataset.txt`（包含消化道出血、COPD、高血压病三个病种）。
 
 ### 4. 运行

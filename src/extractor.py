@@ -96,17 +96,22 @@ class MedicalInfoExtractor:
             source = str(parsed.get("file_name") or parsed.get("file_path") or source)
             merged_text = parsed["content"]
         elif isinstance(parsed, list):
-            docs = [doc for doc in parsed if isinstance(doc, dict) and isinstance(doc.get("content"), str)]
+            docs = [
+                doc
+                for doc in parsed
+                if isinstance(doc, dict) and isinstance(doc.get("content"), str)
+            ]
             if docs:
-                sources = [
-                    str(doc.get("file_name") or doc.get("file_path") or f"doc_{idx + 1}")
-                    for idx, doc in enumerate(docs)
-                ]
-                source = "；".join(sources)
-                merged_text = "\n\n".join(
-                    f"【文档：{src}】\n{doc['content']}"
-                    for src, doc in zip(sources, docs)
-                )
+                all_extracted: List[dict] = []
+                for idx, doc in enumerate(docs):
+                    doc_source = str(
+                        doc.get("file_name") or doc.get("file_path") or f"doc_{idx + 1}"
+                    )
+                    extracted = self.extract_from_text(doc["content"])
+                    for item in extracted:
+                        item["source"] = doc_source
+                    all_extracted.extend(extracted)
+                return all_extracted
 
         extracted = self.extract_from_text(merged_text)
         for item in extracted:
