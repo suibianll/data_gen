@@ -36,7 +36,7 @@ _SYSTEM_PROMPT = """\
 
 _USER_TEMPLATE = """\
 请根据以下病历内容，生成 {n} 组高质量问答对，要求：
-- 至少包含 1 个 Query1、1 个 Query2、1 个 Query3 风格的问题；
+- 必须覆盖 Query1、Query2、Query3 三类问题，且每类至少 1 个；
 - 问题要有一定难度，优先考察矛盾识别、诊疗链条完整性、禁忌风险判断；
 - 每个答案都必须引用 golden_chunks，且 source 要尽量精确到病历字段。
 
