@@ -1,0 +1,17 @@
+llm:
+  api_key: "your-api-key-here"
+  # For OpenAI: https://api.openai.com/v1
+  # For local / compatible services (e.g. Ollama, vLLM): change base_url accordingly
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+  temperature: 0.7
+
+paths:
+  input_dir: "data/input"
+  output_dir: "data/output"
+
+generation:
+  # How many synthetic patient records to generate per disease entry
+  num_records_per_disease: 3
+  # How many QA pairs to generate per medical record
+  num_qa_pairs: 2
