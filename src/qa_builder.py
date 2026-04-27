@@ -14,25 +14,31 @@ _SYSTEM_PROMPT = """\
 你需要从两个维度提问：
 1. 病历书写合规性（Query1）：从病历书写规范的角度，分析该病历是否有前后矛盾、缺失项目、逻辑不一致等问题。
 2. 诊疗逻辑合理性（Query2）：从医学逻辑的角度，分析该患者的诊断是否与症状相符、用药是否有禁忌、诊疗思路是否合理。
+3. 高难度临床推理（Query3）：结合时间线、并发症风险、鉴别诊断、用药安全、指南一致性进行综合分析。
 
 对于每个问题，请提供：
 - 问题（question）
 - 参考答案（answer）
-- 参考段落（reference）：直接引用病历中支持该答案的相关原文片段（若有多处，请列出多处）
+- 证据片段（golden_chunks）：直接引用病历中支持该答案的相关原文片段，并给出来源字段名
 
 请以 JSON 数组的形式输出，每个元素结构如下：
 {
-  "query_type": "Query1" 或 "Query2",
   "question": "...",
   "answer": "...",
-  "references": ["病历原文片段1", "病历原文片段2", ...]
+  "golden_chunks": [
+    {"content": "病历原文片段1", "source": "现病史"},
+    {"content": "病历原文片段2", "source": "辅助检查"}
+  ]
 }
 
 只输出 JSON，不要输出任何其他文字。
 """
 
 _USER_TEMPLATE = """\
-请根据以下病历内容，生成 {n} 组问答对（Query1 和 Query2 各至少一个）：
+请根据以下病历内容，生成 {n} 组高质量问答对，要求：
+- 至少包含 1 个 Query1、1 个 Query2、1 个 Query3 风格的问题；
+- 问题要有一定难度，优先考察矛盾识别、诊疗链条完整性、禁忌风险判断；
+- 每个答案都必须引用 golden_chunks，且 source 要尽量精确到病历字段。
 
 {record_text}
 """
@@ -117,4 +123,39 @@ class QABuilder:
             raise ValueError(
                 f"Expected a JSON array from LLM, got: {type(qa_pairs).__name__}"
             )
-        return qa_pairs
+        normalized: List[dict] = []
+        for qa in qa_pairs:
+            if not isinstance(qa, dict):
+                continue
+            question = str(qa.get("question", "")).strip()
+            answer = str(qa.get("answer", "")).strip()
+            chunks = qa.get("golden_chunks")
+            if not isinstance(chunks, list):
+                refs = qa.get("references", [])
+                chunks = (
+                    [{"content": str(ref), "source": "病历原文"} for ref in refs if str(ref).strip()]
+                    if isinstance(refs, list)
+                    else []
+                )
+            normalized_chunks = []
+            for chunk in chunks:
+                if not isinstance(chunk, dict):
+                    continue
+                content = str(chunk.get("content", "")).strip()
+                source = str(chunk.get("source", "病历原文")).strip() or "病历原文"
+                if content:
+                    normalized_chunks.append({"content": content, "source": source})
+            if question and answer:
+                normalized.append(
+                    {
+                        "question": question,
+                        "answer": answer,
+                        "golden_chunks": normalized_chunks,
+                    }
+                )
+        return normalized
+
+
+def record_to_text(record: dict) -> str:
+    """Public helper for rendering record dict to readable text."""
+    return _record_to_text(record)

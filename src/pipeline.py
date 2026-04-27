@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from .extractor import MedicalInfoExtractor
 from .llm_client import LLMClient
-from .qa_builder import QABuilder
+from .qa_builder import QABuilder, record_to_text
 from .record_generator import MedicalRecordGenerator
 
 logger = logging.getLogger(__name__)
@@ -107,11 +107,12 @@ class Pipeline:
         Returns
         -------
         list of dict
-            Each entry has ``disease``, ``record``, and ``qa_pairs``.
+            Each entry has ``question``, ``record``, ``answer``, ``golden_chunks``.
         """
         all_qa: List[dict] = []
         for entry in tqdm(record_results, desc="Building QA pairs"):
             disease_name = entry["disease_info"]["disease"]
+            source = entry["disease_info"].get("source", disease_name)
             for record in entry["records"]:
                 logger.info("Building QA for disease: %s", disease_name)
                 try:
@@ -121,13 +122,21 @@ class Pipeline:
                         "QA generation failed for %s: %s", disease_name, exc
                     )
                     qa_pairs = []
-                all_qa.append(
-                    {
-                        "disease": disease_name,
-                        "record": record,
-                        "qa_pairs": qa_pairs,
-                    }
-                )
+                record_text = record_to_text(record)
+                for qa in qa_pairs:
+                    golden_chunks = qa.get("golden_chunks", [])
+                    if isinstance(golden_chunks, list):
+                        for chunk in golden_chunks:
+                            if isinstance(chunk, dict) and not chunk.get("source"):
+                                chunk["source"] = source
+                    all_qa.append(
+                        {
+                            "question": qa.get("question", ""),
+                            "record": record_text,
+                            "answer": qa.get("answer", ""),
+                            "golden_chunks": golden_chunks,
+                        }
+                    )
 
         out_path = self.output_dir / "qa_dataset.json"
         _write_json(out_path, all_qa)

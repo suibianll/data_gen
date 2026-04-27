@@ -82,5 +82,33 @@ class MedicalInfoExtractor:
         -------
         list of dict
         """
-        text = Path(file_path).read_text(encoding="utf-8")
-        return self.extract_from_text(text)
+        path = Path(file_path)
+        text = path.read_text(encoding="utf-8")
+        source = path.name
+        merged_text = text
+
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+
+        if isinstance(parsed, dict) and isinstance(parsed.get("content"), str):
+            source = str(parsed.get("file_name") or parsed.get("file_path") or source)
+            merged_text = parsed["content"]
+        elif isinstance(parsed, list):
+            docs = [doc for doc in parsed if isinstance(doc, dict) and isinstance(doc.get("content"), str)]
+            if docs:
+                sources = [
+                    str(doc.get("file_name") or doc.get("file_path") or f"doc_{idx + 1}")
+                    for idx, doc in enumerate(docs)
+                ]
+                source = "；".join(sources)
+                merged_text = "\n\n".join(
+                    f"【文档：{src}】\n{doc['content']}"
+                    for src, doc in zip(sources, docs)
+                )
+
+        extracted = self.extract_from_text(merged_text)
+        for item in extracted:
+            item["source"] = source
+        return extracted

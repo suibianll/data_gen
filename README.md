@@ -75,7 +75,20 @@ generation:
 
 ### 3. 准备输入数据
 
-将医学数据集文件放入 `data/input/` 目录。文件格式不限，只需包含医学相关文本即可。  
+将医学数据集文件放入 `data/input/` 目录。支持纯文本，也支持如下 JSON 文档（单篇或多篇）：
+
+```json
+[
+  {
+    "file_name": "xxx.pdf",
+    "file_type": "PDF",
+    "file_path": "/path/to/xxx.pdf",
+    "content": "文章解析后的正文内容"
+  }
+]
+```
+
+程序会自动读取 `content` 字段并汇总后抽取病症信息。  
 仓库已附带示例文件 `data/input/sample_medical_dataset.txt`（包含消化道出血、COPD、高血压病三个病种）。
 
 ### 4. 运行
@@ -105,26 +118,12 @@ data/output/
 ```json
 [
   {
-    "disease": "消化道出血",
-    "record": {
-      "基本信息": { "性别": "男", "年龄": "62岁", ... },
-      "主诉": "黑便、气喘1月余...",
-      "现病史": "...",
-      "初步诊断": ["消化道出血（上消化道）", "缺铁性贫血"]
-    },
-    "qa_pairs": [
-      {
-        "query_type": "Query1",
-        "question": "该患者的入院记录是否符合病历书写基本规则？前后有无矛盾？",
-        "answer": "...",
-        "references": ["病历原文片段1", "病历原文片段2"]
-      },
-      {
-        "query_type": "Query2",
-        "question": "该患者的诊疗思路是否符合医学逻辑？诊断与症状是否相符？",
-        "answer": "...",
-        "references": ["病历原文片段"]
-      }
+    "question": "该病例中初步诊断与辅助检查是否完全一致？可能存在哪些诊疗风险？",
+    "record": "【基本信息】...\n【主诉】...\n【现病史】...\n...",
+    "answer": "...",
+    "golden_chunks": [
+      { "content": "入院前自服阿司匹林...", "source": "在服药物" },
+      { "content": "粪隐血阳性，Hb 86g/L", "source": "辅助检查" }
     ]
   }
 ]
